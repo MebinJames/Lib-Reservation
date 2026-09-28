@@ -1,0 +1,28 @@
+{
+  "name": "lib-reservation",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "check:concurrency": "node --env-file-if-exists=.env.local scripts/check-concurrency.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "next": "^16.3.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.7.2"
+  }
+}

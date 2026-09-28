@@ -1,0 +1,190 @@
+-- Reading Room — core schema.
+--
+-- Replaces the libSQL schema that was inlined in src/lib/db.ts. Two rules that
+-- used to live in application code move into the database here:
+--
+--   * no seat held twice over the same half-hour
+--   * no student holding two seats at the same time
+--
+-- Both are EXCLUDE constraints, so they are enforced by an index rather than by
+-- a check inside a transaction. SQLite had no equivalent, which is why store.ts
+-- did the overlap check by hand.
+
+create extension if not exists btree_gist;
+
+create type public.app_role as enum ('student', 'staff', 'admin');
+
+-- ------------------------------------------------------------------ profiles
+
+create table public.profiles (
+  id            uuid primary key references auth.users (id) on delete cascade,
+  email         text not null unique,
+  full_name     text,
+  roll_no       text unique,
+  department    text,
+  year          smallint check (year between 1 and 6),
+  role          public.app_role not null default 'student',
+  -- Null until the registration form is completed. Booking requires it.
+  registered_at timestamptz,
+  created_at    timestamptz not null default now(),
+
+  -- The domain rule, restated where it cannot be bypassed. The signup hook
+  -- refuses out-of-domain accounts at creation; this makes an out-of-domain
+  -- row impossible to hold at all, which is what the old readSession() gave us
+  -- by re-checking on every read. Equality, never a suffix test:
+  --   x@evil.mgits.ac.in     -> 'evil.mgits.ac.in'     -> refused
+  --   x@mgits.ac.in.evil.com -> 'mgits.ac.in.evil.com' -> refused
+  -- Changing the college domain is deliberately a migration, not a setting.
+  constraint profiles_email_domain check (
+    length(email) - length(replace(email, '@', '')) = 1
+    and position('@' in email) > 1
+    and split_part(lower(email), '@', 2) = 'mgits.ac.in'
+  )
+);
+
+comment on column public.profiles.registered_at is
+  'Set when the student completes registration; booking is refused until then.';
+
+-- Every auth user gets a profile immediately, so the row is never missing.
+-- The student then fills it in; they never insert it themselves.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (id, email, full_name)
+  values (
+    new.id,
+    lower(new.email),
+    nullif(trim(coalesce(new.raw_user_meta_data ->> 'full_name',
+                         new.raw_user_meta_data ->> 'name',
+                         '')), '')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- -------------------------------------------------------------- reservations
+
+create table public.reservations (
+  id         uuid primary key default gen_random_uuid(),
+  -- '<table uuid>:<seat index>' — a stable id, not the display code, so
+  -- renumbering the room never points a booking at a different chair.
+  seat_id    text not null,
+  date       date not null,
+  start_slot int  not null,
+  end_slot   int  not null,
+  student_id uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+
+  constraint reservations_slot_range
+    check (start_slot >= 0 and end_slot > start_slot)
+);
+
+create index reservations_seat_date_idx    on public.reservations (seat_id, date);
+create index reservations_student_date_idx on public.reservations (student_id, date);
+create index reservations_date_idx         on public.reservations (date);
+
+-- int4range(a, b) is [a, b) — half open, which is exactly the app's
+-- "start inclusive, end exclusive" slot convention.
+alter table public.reservations
+  add constraint reservations_no_seat_overlap
+  exclude using gist (
+    seat_id with =,
+    date with =,
+    int4range(start_slot, end_slot) with &&
+  );
+
+alter table public.reservations
+  add constraint reservations_no_student_overlap
+  exclude using gist (
+    student_id with =,
+    date with =,
+    int4range(start_slot, end_slot) with &&
+  );
+
+-- ------------------------------------------------------------------- the room
+
+create table public.layout_tables (
+  id    uuid primary key default gen_random_uuid(),
+  kind  text not null check (kind in ('round', 'square', 'computer')),
+  x     double precision not null,
+  y     double precision not null,
+  -- Each null means "work it out from the table's type and position".
+  rot   double precision,
+  seats int check (seats between 1 and 12),
+  num   int check (num between 1 and 999)
+);
+
+create table public.settings (
+  key   text primary key,
+  value text not null
+);
+
+-- --------------------------------------------------------------- role changes
+
+create table public.role_audit (
+  id         bigint generated by default as identity primary key,
+  actor_id   uuid references public.profiles (id) on delete set null,
+  target_id  uuid not null references public.profiles (id) on delete cascade,
+  old_role   public.app_role,
+  new_role   public.app_role not null,
+  changed_at timestamptz not null default now()
+);
+
+create index role_audit_target_idx on public.role_audit (target_id, changed_at desc);
+
+-- ---------------------------------------------------------------- the quota
+
+-- Seats one student may hold at once. The two EXCLUDE constraints above are
+-- index-enforced and need no help; a count is not, so this takes a row lock on
+-- the student's profile first. Without it two concurrent bookings could each
+-- count quota-1 and both succeed.
+create or replace function public.enforce_booking_quota()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  quota int;
+  held  int;
+begin
+  perform 1 from public.profiles where id = new.student_id for update;
+
+  -- Non-digits stripped so a malformed setting degrades to the default
+  -- rather than taking booking down.
+  select coalesce(
+           (select nullif(regexp_replace(value, '\D', '', 'g'), '')::int
+              from public.settings
+             where key = 'maxPerStudent'),
+           3)
+    into quota;
+
+  -- The library is in India; current_date would be the UTC day, which is the
+  -- previous day for the first five and a half hours of every morning.
+  select count(*) into held
+    from public.reservations
+   where student_id = new.student_id
+     and date >= (now() at time zone 'Asia/Kolkata')::date;
+
+  if held >= quota then
+    raise exception
+      'Each student can hold % seats at a time. Cancel one first.', quota
+      using errcode = 'check_violation';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger reservations_enforce_quota
+  before insert on public.reservations
+  for each row execute function public.enforce_booking_quota();

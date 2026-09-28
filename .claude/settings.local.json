@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/mj/.claude/plugins/marketplaces/ecc/**)",
+      "Read(//Users/mj/.claude/**)"
+    ]
+  }
+}

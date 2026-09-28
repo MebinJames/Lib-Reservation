@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f7f5f1;
+  --panel: #ffffff;
+  --ink: #1c1917;
+  --muted: #78716c;
+  --line: #e3ded6;
+  --accent: #175d4e;
+  --accent-ink: #ffffff;
+  --danger: #9f1239;
+
+  /* floor plan */
+  --plan-bg: #ffffff;
+  --plan-floor: #fcfbf9;
+  --plan-wall: #2b2b31;
+  --plan-line: #8a8a94;
+  --plan-label: #9a9aa4;
+  --plan-grid: #ecebe7;
+  --plan-dim: #a8a49c;
+  --plan-ink: #3f3f46;
+  --table-fill: #f6f6f7;
+
+  /* seats */
+  --seat-free: #2f9e6e;
+  --seat-taken: #d6d3d1;
+  --seat-active: #1d4ed8;
+  --seat-mine: #7c3aed;
+  --seat-edge: #3f3f46;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17161a;
+    --panel: #201f24;
+    --ink: #f5f3ef;
+    --muted: #a5a099;
+    --line: #34323a;
+    --accent: #4fd1a5;
+    --accent-ink: #06251d;
+    --danger: #fb7185;
+
+    --plan-bg: #1e1d22;
+    --plan-floor: #26252b;
+    --plan-wall: #cfcdd8;
+    --plan-line: #7d7b88;
+    --plan-label: #8d8b99;
+    --plan-grid: #2e2d35;
+    --plan-dim: #6d6b78;
+    --plan-ink: #d6d4de;
+    --table-fill: #32313a;
+
+    --seat-free: #3fbe86;
+    --seat-taken: #4a4852;
+    --seat-active: #6591ff;
+    --seat-mine: #a884fb;
+    --seat-edge: #14131a;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+/* Keyboard focus needs to be visible on SVG seats too. */
+[role="button"]:focus-visible {
+  outline: 3px solid var(--seat-active);
+  outline-offset: 2px;
+}
