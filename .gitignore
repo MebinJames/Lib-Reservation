@@ -11,3 +11,6 @@ next-env.d.ts
 data/reservations.json
 data/*.db
 data/*.db-*
+
+# local Claude tooling, not part of the app
+everything-claude-code/
