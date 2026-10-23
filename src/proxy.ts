@@ -4,8 +4,9 @@
  * Access tokens are short-lived, and a Server Component cannot set cookies —
  * so without this the refreshed token would be computed and then thrown away
  * on every render, and a student would be signed out the moment their token
- * expired. Middleware runs early enough to write the new cookies onto the
- * response, which is the whole reason this file exists.
+ * expired. The proxy runs early enough to write the new cookies onto the
+ * response, which is the whole reason this file exists. (Next.js 16 calls
+ * this file proxy.ts; it was middleware.ts before.)
  */
 
 import { createServerClient } from "@supabase/ssr";
@@ -14,7 +15,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Without Supabase there is no session to refresh, and the booking page
   // still has to render.
   if (!SUPABASE_URL || !PUBLISHABLE_KEY) return NextResponse.next({ request });
