@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import LayoutEditor from "./LayoutEditor";
+import { Card, Notice, Stat } from "./ui";
 import type { TableSpec } from "@/lib/floorplan";
 // Type-only, so the `server-only` guard in these modules is never imported.
 import type { Overview } from "@/lib/overview";
@@ -16,7 +17,7 @@ type Tab = "overview" | "layout" | "settings" | "bookings" | "people";
 
 export default function AdminClient({ enabled }: { enabled: boolean }) {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>("bookings");
   const [dirty, setDirty] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
@@ -101,11 +102,11 @@ export default function AdminClient({ enabled }: { enabled: boolean }) {
       <nav className="mb-5 flex flex-wrap gap-2">
         {(
           [
+            ["bookings", "Bookings"],
             ["overview", "Overview"],
             ["layout", `Layout${dirty ? " •" : ""}`],
-            ["settings", "Booking rules"],
-            ["bookings", "Bookings"],
-            ["people", "People"],
+            ["settings", "Settings"],
+            ["people", "Privileges"],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -577,7 +578,7 @@ function OverviewTab({ onJump }: { onJump: (t: Tab) => void }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Busiest hours" note="last 30 days and the week ahead">
+        <Card title="Busiest hours" note="last 30 days and the week ahead">
           {data.byHour.length === 0 ? (
             <p className="text-sm text-[color:var(--muted)]">
               Nothing booked yet.
@@ -598,9 +599,9 @@ function OverviewTab({ onJump }: { onJump: (t: Tab) => void }) {
               ))}
             </ul>
           )}
-        </Panel>
+        </Card>
 
-        <Panel title="Most booked seats" note="last 30 days and the week ahead">
+        <Card title="Most booked seats" note="last 30 days and the week ahead">
           {data.topSeats.length === 0 ? (
             <p className="text-sm text-[color:var(--muted)]">
               Nothing booked yet.
@@ -617,7 +618,7 @@ function OverviewTab({ onJump }: { onJump: (t: Tab) => void }) {
               ))}
             </ul>
           )}
-        </Panel>
+        </Card>
       </div>
 
       <p className="text-sm text-[color:var(--muted)]">
@@ -627,47 +628,9 @@ function OverviewTab({ onJump }: { onJump: (t: Tab) => void }) {
           onClick={() => onJump("people")}
           className="underline underline-offset-2"
         >
-          Manage people
+          Manage privileges
         </button>
       </p>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-[color:var(--line)] bg-[color:var(--panel)] px-4 py-3">
-      <p className="text-xs uppercase tracking-wide text-[color:var(--muted)]">
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-[color:var(--muted)]">{note}</p>
-    </div>
-  );
-}
-
-function Panel({
-  title,
-  note,
-  children,
-}: {
-  title: string;
-  note: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border border-[color:var(--line)] bg-[color:var(--panel)] px-4 py-3">
-      <p className="text-sm font-medium">{title}</p>
-      <p className="mb-3 text-xs text-[color:var(--muted)]">{note}</p>
-      {children}
     </div>
   );
 }
@@ -807,26 +770,5 @@ function PeopleTab() {
         Changes take effect the next time that person&rsquo;s session refreshes.
       </p>
     </div>
-  );
-}
-
-function Notice({
-  children,
-  error = false,
-}: {
-  children: React.ReactNode;
-  error?: boolean;
-}) {
-  return (
-    <p
-      role="status"
-      className={`rounded-xl border px-3 py-2 text-sm ${
-        error
-          ? "border-[color:var(--danger)] text-[color:var(--danger)]"
-          : "border-[color:var(--line)] text-[color:var(--muted)]"
-      }`}
-    >
-      {children}
-    </p>
   );
 }

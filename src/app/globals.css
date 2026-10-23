@@ -4,7 +4,9 @@
   --bg: #f7f5f1;
   --panel: #ffffff;
   --ink: #1c1917;
-  --muted: #78716c;
+  --muted: #6b6560;
+  --surface-2: #f1eee8;
+  --warn: #b45309;
   --line: #e3ded6;
   --accent: #175d4e;
   --accent-ink: #ffffff;
@@ -24,6 +26,7 @@
   /* seats */
   --seat-free: #2f9e6e;
   --seat-taken: #d6d3d1;
+  --seat-taken-hatch: #a8a29e;
   --seat-active: #1d4ed8;
   --seat-mine: #7c3aed;
   --seat-edge: #3f3f46;
@@ -35,6 +38,8 @@
     --panel: #201f24;
     --ink: #f5f3ef;
     --muted: #a5a099;
+    --surface-2: #2a2930;
+    --warn: #fbbf24;
     --line: #34323a;
     --accent: #4fd1a5;
     --accent-ink: #06251d;
@@ -52,6 +57,7 @@
 
     --seat-free: #3fbe86;
     --seat-taken: #4a4852;
+    --seat-taken-hatch: #6b6975;
     --seat-active: #6591ff;
     --seat-mine: #a884fb;
     --seat-edge: #14131a;
@@ -67,6 +73,8 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-surface-2: var(--surface-2);
+  --color-warn: var(--warn);
 }
 
 body {
@@ -80,4 +88,10 @@ body {
 [role="button"]:focus-visible {
   outline: 3px solid var(--seat-active);
   outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }

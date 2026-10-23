@@ -6,9 +6,8 @@ import { IN, SHEET, U_PER_M, WALL } from "@/lib/floorplan";
 
 /**
  * The drawing sheet everything else sits on: border, title block, north
- * arrow, floor, setting-out grid, wall poché, dimension strings and scale
- * bar. Both the booking plan and the admin editor render inside it, so the
- * two views stay the same drawing.
+ * arrow, floor, setting-out grid and wall poché. Both the booking plan and
+ * the admin editor render inside it, so the two views stay the same drawing.
  */
 
 const MID = {
@@ -17,9 +16,6 @@ const MID = {
   w: IN.x1 - IN.x0 + WALL,
   h: IN.y1 - IN.y0 + WALL,
 };
-
-const metres = (units: number) => (units / U_PER_M).toFixed(2);
-const AREA = ((IN.x1 - IN.x0) * (IN.y1 - IN.y0)) / (U_PER_M * U_PER_M);
 
 export default function PlanSheet({
   title,
@@ -56,6 +52,7 @@ export default function PlanSheet({
         y={28}
         width={SHEET.w - 56}
         height={SHEET.h - 56}
+        rx={14}
         fill="none"
         stroke="var(--plan-dim)"
         strokeWidth={1.5}
@@ -133,125 +130,6 @@ export default function PlanSheet({
 
       {/* the furniture */}
       {children}
-
-      {/* dimension strings */}
-      <g pointerEvents="none">
-        <Dimension
-          x1={IN.x0}
-          y1={IN.y1 + 80}
-          x2={IN.x1}
-          y2={IN.y1 + 80}
-          from={{ x: IN.x0, y: IN.y1 }}
-          to={{ x: IN.x1, y: IN.y1 }}
-          label={`${metres(IN.x1 - IN.x0)} m`}
-        />
-        <Dimension
-          x1={IN.x0 - 96}
-          y1={IN.y0}
-          x2={IN.x0 - 96}
-          y2={IN.y1}
-          from={{ x: IN.x0, y: IN.y0 }}
-          to={{ x: IN.x0, y: IN.y1 }}
-          label={`${metres(IN.y1 - IN.y0)} m`}
-          vertical
-        />
-      </g>
-
-      {/* scale bar */}
-      <g transform={`translate(${IN.x1 - 4 * U_PER_M} ${SHEET.h - 74})`} pointerEvents="none">
-        {[0, 1, 2, 3].map((i) => (
-          <rect
-            key={i}
-            x={i * U_PER_M}
-            y={0}
-            width={U_PER_M}
-            height={11}
-            fill={i % 2 ? "var(--plan-bg)" : "var(--plan-ink)"}
-            stroke="var(--plan-ink)"
-            strokeWidth={1.2}
-          />
-        ))}
-        {[0, 2, 4].map((m) => (
-          <text
-            key={m}
-            x={m * U_PER_M}
-            y={32}
-            fontSize={13}
-            textAnchor="middle"
-            fill="var(--plan-dim)"
-          >
-            {m}
-          </text>
-        ))}
-        <text
-          x={4 * U_PER_M}
-          y={-9}
-          fontSize={13}
-          textAnchor="end"
-          fill="var(--plan-dim)"
-          letterSpacing={1.5}
-        >
-          METRES
-        </text>
-      </g>
-      <text
-        x={60}
-        y={SHEET.h - 52}
-        fontSize={13}
-        fill="var(--plan-dim)"
-        letterSpacing={1.5}
-        pointerEvents="none"
-      >
-        AREA {AREA.toFixed(0)} m² · GRID 1.00 m
-      </text>
     </svg>
-  );
-}
-
-/**
- * An architectural dimension string: extension lines back to the thing being
- * measured, a run between 45° ticks, and the distance sitting on the line.
- */
-function Dimension({
-  x1,
-  y1,
-  x2,
-  y2,
-  from,
-  to,
-  label,
-  vertical = false,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  from: { x: number; y: number };
-  to: { x: number; y: number };
-  label: string;
-  vertical?: boolean;
-}) {
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
-  return (
-    <g stroke="var(--plan-dim)" strokeWidth={1.2} fill="none">
-      <line x1={from.x} y1={from.y} x2={x1} y2={y1} opacity={0.55} />
-      <line x1={to.x} y1={to.y} x2={x2} y2={y2} opacity={0.55} />
-      <line x1={x1} y1={y1} x2={x2} y2={y2} />
-      <line x1={x1 - 6} y1={y1 - 6} x2={x1 + 6} y2={y1 + 6} strokeWidth={1.6} />
-      <line x1={x2 - 6} y1={y2 - 6} x2={x2 + 6} y2={y2 + 6} strokeWidth={1.6} />
-      <text
-        x={vertical ? mx - 10 : mx}
-        y={vertical ? my : my - 12}
-        fontSize={16}
-        letterSpacing={1}
-        textAnchor="middle"
-        stroke="none"
-        fill="var(--plan-ink)"
-        transform={vertical ? `rotate(-90 ${mx - 10} ${my})` : undefined}
-      >
-        {label}
-      </text>
-    </g>
   );
 }

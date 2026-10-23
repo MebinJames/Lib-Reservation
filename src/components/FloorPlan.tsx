@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import PlanSheet from "./PlanSheet";
 import {
   CHAIR_H,
@@ -17,6 +19,13 @@ interface Props {
   onSelect: (seatId: string) => void;
   /** null = show everything */
   filter: TableKind | null;
+  /**
+   * Which seats can be clicked. The default is the booking page's rule: any
+   * seat that is not taken. The admin passes `() => true` to inspect them all.
+   */
+  canSelect?: (seatId: string) => boolean;
+  /** Draws a dashed ring round this seat, whatever its state. */
+  ringed?: string | null;
 }
 
 const FILL: Record<SeatState, string> = {
@@ -26,14 +35,26 @@ const FILL: Record<SeatState, string> = {
   mine: "var(--seat-mine)",
 };
 
+/** The ring round a chair, sized to include its seat back. */
+const RING = {
+  x: -CHAIR_W / 2 - 4,
+  y: -CHAIR_H / 2 - 8,
+  w: CHAIR_W + 8,
+  h: CHAIR_H + 12,
+};
+
 export default function FloorPlan({
   layout,
   stateOf,
   labelOf,
   onSelect,
   filter,
+  canSelect,
+  ringed = null,
 }: Props) {
   const { tables, seats, fit } = layout;
+  // Two plans can share a page (admin), so the pattern id must not collide.
+  const hatch = `seat-hatch-${useId().replace(/:/g, "")}`;
 
   return (
     <PlanSheet
@@ -41,6 +62,26 @@ export default function FloorPlan({
       subtitle={`SEATING PLAN · ${tables.length} TABLES · ${seats.length} SEATS`}
     >
       <g transform={`translate(${fit.tx} ${fit.ty}) scale(${fit.scale})`}>
+        {/* Taken seats are hatched as well as grey, so colour is not the only cue. */}
+        <defs>
+          <pattern
+            id={hatch}
+            patternUnits="userSpaceOnUse"
+            width={6}
+            height={6}
+            patternTransform="rotate(45)"
+          >
+            <rect width={6} height={6} fill="var(--seat-taken)" />
+            <line
+              x1={0}
+              y1={0}
+              x2={0}
+              y2={6}
+              stroke="var(--seat-taken-hatch)"
+              strokeWidth={2.5}
+            />
+          </pattern>
+        </defs>
         {/* ------------------------------------------------------- tables */}
         <g
           fill="var(--table-fill)"
@@ -103,7 +144,8 @@ export default function FloorPlan({
           {seats.map((s) => {
             const state = stateOf(s.id);
             const dimmed = Boolean(filter && s.kind !== filter);
-            const disabled = state === "booked" || dimmed;
+            const selectable = canSelect ? canSelect(s.id) : state !== "booked";
+            const disabled = dimmed || !selectable;
             return (
               <g
                 key={s.id}
@@ -132,11 +174,28 @@ export default function FloorPlan({
                   width={CHAIR_W}
                   height={CHAIR_H}
                   rx={6}
-                  fill={FILL[state]}
+                  fill={state === "booked" ? `url(#${hatch})` : FILL[state]}
                   stroke="var(--seat-edge)"
                   strokeWidth={state === "selected" ? 4 : 1.8}
                   className="transition-[fill] duration-150"
                 />
+                {state === "mine" && (
+                  <circle cx={s.x} cy={s.y} r={4} fill="var(--panel)" />
+                )}
+                {(state === "selected" || s.id === ringed) && (
+                  <rect
+                    x={s.x + RING.x}
+                    y={s.y + RING.y}
+                    width={RING.w}
+                    height={RING.h}
+                    rx={9}
+                    fill="none"
+                    stroke="var(--seat-active)"
+                    strokeWidth={3}
+                    strokeDasharray={state === "selected" ? undefined : "6 4"}
+                    pointerEvents="none"
+                  />
+                )}
                 {/* seat back, so the chair reads as facing the table */}
                 <rect
                   x={s.x - CHAIR_W / 2}

@@ -40,9 +40,9 @@ export interface TableSpec {
 }
 
 /* ------------------------------------------------------------------ sheet */
-/* 80 units = 1 metre. The sheet is larger than the room so dimension
-   strings, the title and the scale bar get their own margin. */
-export const SHEET = { w: 1720, h: 1280 } as const;
+/* 80 units = 1 metre, used for the setting-out grid. The sheet is larger than
+   the room so the title block gets its own margin, symmetric top and bottom. */
+export const SHEET = { w: 1720, h: 1184 } as const;
 export const U_PER_M = 80;
 export const WALL = 22;
 /** Inner face of the walls — the clear span that gets dimensioned. */

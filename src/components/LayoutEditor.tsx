@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import PlanScroller from "./PlanScroller";
 import PlanSheet from "./PlanSheet";
 import {
   MAX_SEATS,
@@ -285,13 +286,13 @@ export default function LayoutEditor({
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
       {/* ------------------------------------------------------ the plan */}
       <div className="min-w-0 rounded-2xl border border-[color:var(--line)] bg-[color:var(--panel)] p-3">
-        <div className="overflow-x-auto">
-          <div
-            className="min-w-[760px]"
-            onPointerMove={onPointerMove}
-            onPointerUp={endDrag}
-            onPointerLeave={endDrag}
-          >
+        <PlanScroller
+          innerProps={{
+            onPointerMove,
+            onPointerUp: endDrag,
+            onPointerLeave: endDrag,
+          }}
+        >
             <PlanSheet
               title="LAYOUT EDITOR"
               subtitle={`${specs.length} TABLES · ${layout.seats.length} SEATS${dirty ? " · UNSAVED" : ""}`}
@@ -405,8 +406,7 @@ export default function LayoutEditor({
                 </g>
               </g>
             </PlanSheet>
-          </div>
-        </div>
+        </PlanScroller>
         <p className="px-2 pt-3 text-xs text-[color:var(--muted)]">
           Drag a table to move it · arrow keys nudge (shift for 10) ·{" "}
           <kbd>[</kbd> and <kbd>]</kbd> rotate (shift for 15°) · Delete removes

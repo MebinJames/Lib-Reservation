@@ -110,3 +110,33 @@ export function firstOpenSlot(p: Policy, dateKey: string, now = new Date()) {
 /** True once nothing more can be booked today. */
 export const isClosedFor = (p: Policy, dateKey: string, now = new Date()) =>
   firstOpenSlot(p, dateKey, now) >= slotCount(p);
+
+/**
+ * "Today", "Tomorrow", otherwise "Mon 5 Oct".
+ *
+ * Goes through fromDateKey, which builds a local date. `new Date("YYYY-MM-DD")`
+ * is parsed as UTC and would show the previous day west of Greenwich.
+ */
+export function dayLabel(dateKey: string, todayKey: string) {
+  if (dateKey === todayKey) return "Today";
+  const d = fromDateKey(dateKey);
+  const next = fromDateKey(todayKey);
+  next.setDate(next.getDate() + 1);
+  if (toDateKey(next) === dateKey) return "Tomorrow";
+  const weekday = d.toLocaleDateString("en-GB", { weekday: "short" });
+  const month = d.toLocaleDateString("en-GB", { month: "short" });
+  return `${weekday} ${d.getDate()} ${month}`;
+}
+
+/** Minutes past midnight -> "08:00", the value an `<input type="time">` wants. */
+export const toHHMM = (mins: number) =>
+  `${pad(Math.floor(mins / 60) % 24)}:${pad(mins % 60)}`;
+
+/** "08:00" -> 480. NaN for anything that is not a valid 24-hour time. */
+export function fromHHMM(s: string) {
+  const m = /^(\d{2}):(\d{2})$/.exec(s);
+  if (!m) return NaN;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h > 23 || min > 59 ? NaN : h * 60 + min;
+}
